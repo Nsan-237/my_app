@@ -1,10 +1,11 @@
 import React, { Component } from 'react'
 import { Text, View } from 'react-native'
 
-export default function HomeScreen() {
+export default function Profile()  {
     return (
       <View>
-        <Text> Home Screen </Text>
+        <Text> Profile </Text>
       </View>
     )
   }
+
