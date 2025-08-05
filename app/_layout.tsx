@@ -1,4 +1,6 @@
-import { Stack } from "expo-router";
+// app/(login)/_layout.jsx
+import { Stack } from 'expo-router';
+
 
 export default function RootLayout() {
   return (
@@ -6,7 +8,7 @@ export default function RootLayout() {
     headerShown: false
   }}>
     <Stack.Screen name="(tabs)" />
-    <Stack.Screen name="(login)" />,
+    <Stack.Screen name="(login)" />
   </Stack>
   )
 }
