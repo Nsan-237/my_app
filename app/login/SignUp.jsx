@@ -11,16 +11,12 @@ import { setLocalStorage } from '@/service/Storage';
 
 
 export default function SignUp() {
-
       const router = useRouter();
-
+      const [userName,setUserName]=useState();
       const [email,setEmail]= useState();
       const [password,setPassword]= useState();
 
       const OncreateAccount=()=>{
-      const [useNmae,setUserName]=useState()
-
-      }
         if(!email||!password||!userName){
           ToastAndroid.show("Please fill all details",ToastAndroid.BOTTOM)
           Alert.alert("Please enter email and password") //it is for Ios Phones
@@ -29,13 +25,10 @@ export default function SignUp() {
       .then(async(userCredential) => {
         // Signed up 
         const user = userCredential.user;
-    
         await updateProfile(user,{
           displayName:userName
-        })
-                  
+        })          
         await setLocalStorage("userDetail",user)
-
         router.push("(tabs)")
         // ...
       })
@@ -49,8 +42,7 @@ export default function SignUp() {
         }
         // ..
       });
-      
-  
+    }    
     return (
         <View style={
           {

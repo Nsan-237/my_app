@@ -3,6 +3,8 @@ import { Text, View, Button } from 'react-native' // <-- Use Button from react-n
 import { signOut } from 'firebase/auth'
 import { auth } from '../../config/FirebaseConfig'
 import { router } from 'expo-router' // If using expo-router
+import  Header  from './../../components/Header'
+
 
 export default function HomeScreen() {
   const handleLogout = async () => {
@@ -15,9 +17,13 @@ export default function HomeScreen() {
   }
 
   return (
-    <View>
-      <Text>Home Screen</Text>
+    <View style={{
+      padding:25,
+      backgroundColor:"white",
+      height:"100%"
+    }}>
       <Button title="Logout" onPress={handleLogout} />
+      <Header/>
     </View>
   )
 }

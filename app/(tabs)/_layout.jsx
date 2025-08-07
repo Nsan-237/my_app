@@ -6,6 +6,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './../../config/FirebaseConfig';
 import { useId } from 'react';
 import { useState } from 'react';
+import { getLocalStorage } from '@/service/Storage';
 
 export default function TabLayout() {
 
@@ -18,7 +19,7 @@ export default function TabLayout() {
        const GetUserDetail=async()=>{
         const userInfo = await getLocalStorage ("useDetail")
         if(!userInfo){
-          rouuter.replace("/login")
+          router.replace("/login")
         }
        }
        //For authentication
