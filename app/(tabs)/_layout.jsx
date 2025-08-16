@@ -1,3 +1,4 @@
+// Home page
 import React, { Component, useEffect } from 'react'
 import { Text, View } from 'react-native'
 import { Tabs, useRouter } from 'expo-router'
