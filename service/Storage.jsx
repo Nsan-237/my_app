@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
-
+import { KeyboardEvent } from "react-native"
 export const setLocalStorage=async(KeyboardEvent,value)=>{
     await AsyncStorage.setItem(Key,JSON.stringify(value))
 }
