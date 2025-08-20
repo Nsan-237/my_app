@@ -1,14 +1,19 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"
-import { KeyboardEvent } from "react-native"
-export const setLocalStorage=async(KeyboardEvent,value)=>{
-    await AsyncStorage.setItem(Key,JSON.stringify(value))
-}
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const getLocalStorage=async(key)=>{
-    const result=await AsyncStorage.getItem(key)
-    return JSON.parse(result)
-}
+export const setLocalStorage = async (key, value) => {
+  await AsyncStorage.setItem(key, JSON.stringify(value));
+};
 
-export const RemoveLocalStorage=async()=>{
-    await AsyncStorage.clear()
-}
+export const getLocalStorage = async (key) => {
+  const result = await AsyncStorage.getItem(key);
+  return result ? JSON.parse(result) : null;
+};
+
+export const removeLocalStorage = async (key) => {
+  await AsyncStorage.removeItem(key);
+};
+
+// Optional: clear all
+export const clearLocalStorage = async () => {
+  await AsyncStorage.clear();
+};

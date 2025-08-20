@@ -1,10 +1,18 @@
-import { auth } from '@/config/FirebaseConfig';
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  ToastAndroid,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, ToastAndroid, TouchableOpacity, View } from 'react-native';
-import Colors from '../../constant/Colors';
-import { setLocalStorage } from "./../../service/Storage";
+import Colors from "../../constant/Colors";
+import { setLocalStorage, getLocalStorage, removeLocalStorage } from "@/service/Storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SignIn() {
   const router = useRouter();
@@ -16,60 +24,74 @@ export default function SignIn() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
+  // Fake user database
+  const mockUsers = [
+    { email: "user@example.com", password: "123456", name: "John Doe" },
+    { email: "nsan@gmail.com", password: "123456", name: "nsan" },
+    { email: "admin@example.com", password: "admin123", name: "Admin User" },
+  ];
+
+  // Save to AsyncStorage
+  const setLocalStorage = async (key, value) => {
+    await AsyncStorage.setItem(key, JSON.stringify(value));
+  };
+
+  // Form validation
   const validateForm = () => {
     let tempErrors = {};
-    if (!email) tempErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(email)) tempErrors.email = "Invalid email format";
+
+    if (!email || email.trim() === "") tempErrors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+      tempErrors.email = "Invalid email format";
 
     if (!password) tempErrors.password = "Password is required";
-    else if (password.length < 6) tempErrors.password = "Password must be at least 6 characters";
+    else if (password.length < 6)
+      tempErrors.password = "Password must be at least 6 characters";
 
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
   };
 
-  const OnSignInClick = () => {
+  // Handle sign in
+  const handleSignIn = async () => {
     if (!validateForm()) {
       ToastAndroid.show("Please fix the form errors", ToastAndroid.SHORT);
       return;
     }
 
     setLoading(true);
-    signInWithEmailAndPassword(auth, email, password)
-      .then(async (userCredential) => {
-        const user = userCredential.user;
+
+    setTimeout(async () => {
+      const user = mockUsers.find(
+        (u) => u.email === email && u.password === password
+      );
+
+      if (user) {
         await setLocalStorage("userDetail", user);
         setLoading(false);
-        setOtpStep(true); // go to OTP step
-      })
-      .catch((error) => {
+        setOtpStep(true); // move to OTP step
+      } else {
         setLoading(false);
-        let message = "Something went wrong";
-        if (error.code === "auth/invalid-credential") {
-          message = "Invalid email or password";
-        } else if (error.code === "auth/user-not-found") {
-          message = "User not found";
-        } else if (error.code === "auth/wrong-password") {
-          message = "Wrong password";
-        }
-        Alert.alert("Login Failed", message);
-      });
+        Alert.alert("Login Failed", "Invalid email or password");
+      }
+    }, 1000);
   };
 
+  // Verify OTP
   const verifyOtp = () => {
     if (!otpCode) {
       Alert.alert("Error", "Please enter the OTP");
       return;
     }
     if (otpCode === "123456") {
-      router.replace("/(tabs)");
+      router.replace("(tabs)"); // Navigate to your home screen
     } else {
       Alert.alert("Error", "Invalid OTP");
     }
   };
 
   return (
-    <View style={{ padding: 25 }}>
+    <View style={{ padding: 25, flex: 1, backgroundColor: "white" }}>
       {!otpStep ? (
         <>
           <Text style={styles.textHeader}>Let's Sign You In</Text>
@@ -98,13 +120,14 @@ export default function SignIn() {
               value={password}
               onChangeText={setPassword}
             />
-            {errors.password && <Text style={styles.error}>{errors.password}</Text>}
+            {errors.password && (
+              <Text style={styles.error}>{errors.password}</Text>
+            )}
           </View>
 
           <TouchableOpacity
             style={[styles.button, loading && { opacity: 0.6 }]}
-            onPress={() => router.push("(tabs)")}
-            // onPress={OnSignInClick}
+            onPress={handleSignIn}
             disabled={loading}
           >
             {loading ? (
@@ -114,8 +137,13 @@ export default function SignIn() {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.buttonCreate} onPress={() => router.push("/login/SignUp")}>
-            <Text style={{ fontSize: 17, color: Colors.PRIMARY, textAlign: "center" }}>Create Account</Text>
+          <TouchableOpacity
+            style={styles.buttonCreate}
+            onPress={() => router.push("/login/SignUp")}
+          >
+            <Text style={{ fontSize: 17, color: Colors.PRIMARY, textAlign: "center" }}>
+              Create Account
+            </Text>
           </TouchableOpacity>
         </>
       ) : (
@@ -140,10 +168,10 @@ export default function SignIn() {
 
 const styles = StyleSheet.create({
   textHeader: { fontSize: 30, fontWeight: "bold", marginTop: 15 },
-  SubText: { fontSize: 30, fontWeight: "bold", marginTop: 10, color: Colors.Gray },
-  TextInput: { padding: 10, borderWidth: 1, fontSize: 17, borderRadius: 10, marginTop: 5, backgroundColor: "white" },
-  button: { padding: 20, backgroundColor: Colors.PRIMARY, borderRadius: 10, marginTop: 35, alignItems: "center" },
-  buttonCreate: { padding: 20, backgroundColor: "white", borderRadius: 10, marginTop: 20, borderWidth: 1, borderColor: Colors.PRIMARY },
+  SubText: { fontSize: 20, fontWeight: "500", marginTop: 5, color: Colors.Gray },
+  TextInput: { padding: 12, borderWidth: 1, fontSize: 16, borderRadius: 10, marginTop: 5, backgroundColor: "white", borderColor: "#ddd" },
+  button: { padding: 16, backgroundColor: Colors.PRIMARY, borderRadius: 10, marginTop: 35, alignItems: "center" },
+  buttonCreate: { padding: 16, backgroundColor: "white", borderRadius: 10, marginTop: 20, borderWidth: 1, borderColor: Colors.PRIMARY },
   buttonText: { fontSize: 17, color: "white", textAlign: "center" },
-  error: { color: "red", fontSize: 14, marginTop: 4 }
+  error: { color: "red", fontSize: 14, marginTop: 4 },
 });

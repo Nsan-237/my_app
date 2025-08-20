@@ -35,7 +35,7 @@ export default function TabLayout() {
                 <FontAwesome name="home" size={size} color={color} />
             )
             }}/>
-        <Tabs.Screen name='AddNew' 
+        <Tabs.Screen name='SubscriptionPlan' 
         options={{
             tabBarlable:"AddNew",
             tabBarIcon:({color,size})=>(
