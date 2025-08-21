@@ -13,5 +13,5 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-, "app/login/SignUp.jsx", "app/login/signIn.jsx", "app/otp.jsx"  ]
+, "app/login/SignUp.jsx", "app/login/signIn.jsx", "app/otp.jsx", "app/(tabs)/index.jsx", "app/src/screens/subscription/PlansScreen.jsx"  ]
 }

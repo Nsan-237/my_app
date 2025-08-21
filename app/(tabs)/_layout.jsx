@@ -37,7 +37,7 @@ export default function TabLayout() {
             }}/>
         <Tabs.Screen name='SubscriptionPlan' 
         options={{
-            tabBarlable:"AddNew",
+            tabBarlable:"Subscription Plan",
             tabBarIcon:({color,size})=>(
                 <FontAwesome name="plus-square" size={size} color="black" />
             )

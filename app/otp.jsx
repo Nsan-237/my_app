@@ -13,7 +13,7 @@ export default function OtpPage() {
 
   const handleVerify = () => {
     if (otp === "123456") {
-      router.replace("/(tabs)"); // go to main app
+      router.push("/(tabs)/Home"); // go to main app
     } else {
       Alert.alert("Invalid OTP");
     }
