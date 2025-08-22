@@ -9,6 +9,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
+import { HeaderShownContext } from "@react-navigation/elements";
 import { useRouter } from "expo-router";
 import Colors from "../../constant/Colors";
 import { setLocalStorage, getLocalStorage, removeLocalStorage } from "@/service/Storage";
@@ -139,7 +142,7 @@ export default function SignIn() {
 
           <TouchableOpacity
             style={styles.buttonCreate}
-            onPress={() => router.push("/login/SignUp")}
+            onPress={() => router.push("/(auth)/SignUp")}
           >
             <Text style={{ fontSize: 17, color: Colors.PRIMARY, textAlign: "center" }}>
               Create Account

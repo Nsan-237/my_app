@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { Text, View, StyleSheet, TextInput, TouchableOpacity, ToastAndroid, Alert } from 'react-native';
 import Colors from '../../constant/Colors';
 import { useRouter } from "expo-router";
-import { auth } from "../../config/FirebaseConfig";
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { setLocalStorage } from '@/service/Storage';
 
 export default function SignUp() {
@@ -28,32 +26,38 @@ export default function SignUp() {
     return Object.keys(tempErrors).length === 0;
   };
 
-  const OnCreateAccount = () => {
+  const OnCreateAccount = async () => {
     if (!validateForm()) {
       ToastAndroid.show("Please fix form errors", ToastAndroid.SHORT);
       return;
     }
 
-    createUserWithEmailAndPassword(auth, email, password)
-      .then(async (userCredential) => {
-        const user = userCredential.user;
-        await updateProfile(user, { displayName: userName });
-        await setLocalStorage("userDetail", user);
-
-        // Instead of going straight to tabs, go to centralized OTP
-        router.push({
-          pathname: "/otp",
-          params: { email, type: "signup" }
-        });
-      })
-      .catch((error) => {
-        if (error.code === "auth/email-already-in-use") {
-          ToastAndroid.show("Email already exists", ToastAndroid.SHORT);
-          Alert.alert("Email already exists");
-        } else {
-          Alert.alert("Error", error.message);
-        }
+    try {
+      // 🔹 Replace this with your own API call
+      const response = await fetch("https://your-api.com/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: userName, email, password }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Something went wrong");
+      }
+
+      // Save user locally
+      await setLocalStorage("userDetail", data.user);
+
+      // Navigate to OTP (or Tabs directly if no OTP system)
+      router.push({
+        pathname: "/otp",
+        params: { email, type: "signup" }
+      });
+
+    } catch (error) {
+      Alert.alert("Error", error.message);
+    }
   };
 
   return (
@@ -100,8 +104,10 @@ export default function SignUp() {
         <Text style={{ fontSize: 17, color: "white", textAlign: "center" }}>Create Account</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.buttonCreate} onPress={() => router.push("/login/signIn")}>
-        <Text style={{ fontSize: 17, color: Colors.PRIMARY, textAlign: "center" }}>Already have an account? Sign In</Text>
+      <TouchableOpacity style={styles.buttonCreate} onPress={() => router.push("/(auth)/signIn")}>
+        <Text style={{ fontSize: 17, color: Colors.PRIMARY, textAlign: "center" }}>
+          Already have an account? Sign In
+        </Text>
       </TouchableOpacity>
     </View>
   );

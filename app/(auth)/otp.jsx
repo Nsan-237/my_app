@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import { useRouter, useSearchParams } from "expo-router";
+import { useState } from "react";
+import { Colors } from "../../constant/Colors";
+import { Alert, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function OtpPage() {
   const router = useRouter();
@@ -13,7 +14,7 @@ export default function OtpPage() {
 
   const handleVerify = () => {
     if (otp === "123456") {
-      router.push("/(tabs)/Home"); // go to main app
+      router.push("(tabs)"); // go to main app
     } else {
       Alert.alert("Invalid OTP");
     }

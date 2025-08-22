@@ -37,7 +37,7 @@ export default function Profile() {
   // Logout
   const handleLogout = async () => {
     await removeLocalStorage();
-    router.replace('/login/signIn');
+    router.push('/(auth)/signIn');
   };
 
   return (

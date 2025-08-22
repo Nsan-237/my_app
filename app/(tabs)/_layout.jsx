@@ -3,8 +3,6 @@ import React, { Component, useEffect } from 'react'
 import { Text, View } from 'react-native'
 import { Tabs, useRouter } from 'expo-router'
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './../../config/FirebaseConfig';
 import { useId } from 'react';
 import { useState } from 'react';
 import { getLocalStorage } from '@/service/Storage';
@@ -14,13 +12,13 @@ export default function TabLayout() {
        const router = useRouter();
        
        useEffect(()=>{
-          GetUserDetail()
+          // GetUserDetail()
        },[])
 
        const GetUserDetail=async()=>{
         const userInfo = await getLocalStorage ("userDetail")
         if(!userInfo){
-          router.replace("/login")
+          router.replace("(auth)")
         }
        }
    
@@ -28,7 +26,7 @@ export default function TabLayout() {
       <Tabs screenOptions={{
         headerShown:false
       }}>
-        <Tabs.Screen name="Home" 
+        <Tabs.Screen name="index" 
         options={{
             tabBarlable:"Home",
             tabBarIcon:({color,size})=>(
