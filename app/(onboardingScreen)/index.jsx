@@ -3,6 +3,7 @@ import { Text, View, Image, StyleSheet, TouchableOpacity, ScrollView, Dimensions
 import Colors from '../../constant/Colors'
 import { useRouter } from 'expo-router'
 import { useEffect } from 'react'
+import { BounceIn, BounceInDown, BounceInUp, BounceOut, FadeIn, FadeInDown, FadingTransition } from 'react-native-reanimated'
 
 const { width } = Dimensions.get('window')
 
@@ -17,7 +18,8 @@ export default function OnboardingScreen() {
       title: "CONFIRMATION",
       subtitle: "Confirm your waste pickup location by setting your precise address",
       image: require('./../../assets/images/location-confirm.jpg'),
-      buttonText: "Next"
+      buttonText: "Next",
+      // isMainScreen:true // it is for the background color
     },
     {
       id: 2,
@@ -25,7 +27,7 @@ export default function OnboardingScreen() {
       subtitle: "No more waste lying around in your neighborhood",
       image: require('./../../assets/images/clean-environment.jpg'),
       buttonText: "Join",
-      isMainScreen: true
+      // isMainScreen: true
     },
     {
       id: 3,
@@ -137,11 +139,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 40,
     flex: 1,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    Animation:BounceInUp.duration(500)
   },
   image: {
     width: 280,
-    height: 280
+    height: 280,
+    borderRadius:60,
+    
   },
   content: {
     padding: 40,

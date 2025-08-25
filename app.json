@@ -1,22 +1,29 @@
 {
   "expo": {
-    "name": "my_app",
-    "slug": "my_app",
+    "name": "Zerodech",
+    "slug": "Zerodech-1",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/image2.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+
     "ios": {
-      "supportsTablet": true
+    "supportsTablet": true,
+    "splash":{
+    "image": "./assets/images/image2.png",
+    "backgroundColor": "#ffffff",
+    "resizeMode":"contain"
+    }
     },
+
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
+    "supportsTablet": true,
+    "image": "./assets/images/image2.png",
+    "backgroundColor": "#ffffff",
+    "resizeMode":"contain",
+    "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
@@ -28,7 +35,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/image1",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
