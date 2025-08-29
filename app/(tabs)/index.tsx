@@ -9,7 +9,7 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen() {
   const router = useRouter();
   const scrollY = new Animated.Value(0); // For potential parallax effects
-
+  
   const handleGetStarted = () => {
     // Actually navigate to the subscription plan screen
     router.push('/SubscriptionPlan');

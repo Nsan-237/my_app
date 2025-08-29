@@ -35,6 +35,13 @@ export default function OnboardingScreen() {
       subtitle: "Manage your waste collections quickly and easily from your pocket",
       image: require('./../../assets/images/waste-schedule.jpg'),
       buttonText: "Get Started"
+    },
+    {
+      id: 4,
+      title: "COLABORATE",
+      subtitle: "Collaborate with us, to make this world incredible way of cleaningness.",
+      image: require('./../../assets/images/user.jpg'),
+      buttonText: "Welcome to you"
     }
   ]
     // Navigate to next screen or sign in

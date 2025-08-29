@@ -1,122 +1,331 @@
-import React, { useState } from 'react';
-import { Text, View, StyleSheet, TextInput, TouchableOpacity, ToastAndroid, Alert } from 'react-native';
-import Colors from '../../constant/Colors';
+import axios from 'axios';
 import { useRouter } from "expo-router";
-import { setLocalStorage } from '@/service/Storage';
+import React, { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import Colors from '../../constant/Colors';
 
 export default function SignUp() {
   const router = useRouter();
 
-  const [userName, setUserName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState({
+    username: "",
+    useremail: "",
+    userphone: "",
+    userpassword: "",
+    userrole: "client" // default role
+  });
+  
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiResponse, setApiResponse] = useState(null);
+
+  // Update form data
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ""
+      }));
+    }
+  };
 
   const validateForm = () => {
     let tempErrors = {};
 
-    if (!userName) tempErrors.userName = "Full name is required";
-    if (!email) tempErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(email)) tempErrors.email = "Invalid email format";
+    if (!formData.username.trim()) tempErrors.username = "Full name is required";
+     console.log(formData.username);
+ 
+    if (!formData.useremail) tempErrors.useremail = "Email is required";
+    console.log(formData.useremail);
 
-    if (!password) tempErrors.password = "Password is required";
-    else if (password.length < 6) tempErrors.password = "Password must be at least 6 characters";
-
+    if (!formData.userphone) tempErrors.userphone = "Phone number is required";
+    console.log(formData.userphone);
+ 
+    if (!formData.userpassword) tempErrors.userpassword = "Password is required";
+     console.log(formData.userpassword);
+    if (!formData.userrole) tempErrors.userrole = "Please select a role";
+ console.log(formData.userrole);
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
   };
 
   const OnCreateAccount = async () => {
     if (!validateForm()) {
-      ToastAndroid.show("Please fix form errors", ToastAndroid.SHORT);
+      Alert.alert("Error", "Please fix the form errors");
       return;
     }
 
+    setIsLoading(true);
+    setApiResponse(null);
+
     try {
-      // 🔹 Replace this with your own API call
-      const response = await fetch("https://your-api.com/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: userName, email, password }),
-      });
+      const apiUrl = "http://192.168.137.1:4000/api/user/signup"; 
+      const response = await axios.post(apiUrl, formData);
+console.log("hello", response.data);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
+      if (response.status === 201) {
+        setApiResponse({ success: true, message: "Account created successfully!" });
+        Alert.alert("Success", "Account created successfully!");
+        
+        // Redirect to login after successful signup
+        setTimeout(() => {
+          router.push("/(auth)/signIn");
+        }, 1500);
       }
-
-      // Save user locally
-      await setLocalStorage("userDetail", data.user);
-
-      // Navigate to OTP (or Tabs directly if no OTP system)
-      router.push({
-        pathname: "/otp",
-        params: { email, type: "signup" }
-      });
-
     } catch (error) {
-      Alert.alert("Error", error.message);
+      const errorMessage = error.response?.data?.message || "Network error. Please try again.";
+      setApiResponse({ success: false, message: errorMessage });
+      Alert.alert("Error", errorMessage);
+      console.error("Signup error:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <View style={{ padding: 25 }}>
-      <Text style={styles.textHeader}>Create New Account</Text>
+    <ScrollView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.textHeader}>Create New Account</Text>
+        <Text style={styles.subtitle}>Join us and manage waste efficiently</Text>
 
-      <View style={{ marginTop: 25 }}>
-        <Text>Full Name</Text>
-        <TextInput
-          placeholder="Enter your Full Name"
-          style={styles.TextInput}
-          value={userName}
-          onChangeText={setUserName}
-        />
-        {errors.userName && <Text style={styles.error}>{errors.userName}</Text>}
+        {apiResponse && (
+          <View style={[
+            styles.responseBanner, 
+            { backgroundColor: apiResponse.success ? '#4CAF50' : '#F44336' }
+          ]}>
+            <Text style={styles.responseText}>{apiResponse.message}</Text>
+          </View>
+        )}
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Full Name *</Text>
+          <TextInput
+            placeholder="Enter your full name"
+            style={[styles.textInput, errors.fullName && styles.inputError]}
+            value={formData.username}
+            onChangeText={(text) => handleInputChange('username', text)}
+          />
+          {errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Email Address *</Text>
+          <TextInput
+            placeholder="Enter your email"
+            style={[styles.textInput, errors.useremail && styles.inputError]}
+            value={formData.useremail}
+            onChangeText={(text) => handleInputChange('useremail', text)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          {errors.useremail && <Text style={styles.errorText}>{errors.useremail}</Text>}
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Phone Number *</Text>
+          <TextInput
+            placeholder="Enter your phone number"
+            style={[styles.textInput, errors.userphone && styles.inputError]}
+            value={formData.userphone}
+            onChangeText={(text) => handleInputChange('userphone', text)}
+            keyboardType="phone-pad"
+          />
+          {errors.userphone && <Text style={styles.errorText}>{errors.userphone}</Text>}
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Password *</Text>
+          <TextInput
+            placeholder="Create a password (min. 6 characters)"
+            secureTextEntry
+            style={[styles.textInput, errors.userpassword && styles.inputError]}
+            value={formData.userpassword}
+            onChangeText={(text) => handleInputChange('userpassword', text)}
+          />
+          {errors.userpassword && <Text style={styles.errorText}>{errors.userpassword}</Text>}
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>I am a *</Text>
+          <View style={styles.roleContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.roleButton, 
+                formData.userrole === 'client' && styles.roleButtonActive
+              ]}
+              onPress={() => handleInputChange('userrole', 'client')}
+            >
+              <Text style={[
+                styles.roleText,
+                formData.userrole === 'client' && styles.roleTextActive
+              ]}>Household/Client</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.roleButton, 
+                formData.userrole === 'collector' && styles.roleButtonActive
+              ]}
+              onPress={() => handleInputChange('userrole', 'collector')}
+            >
+              <Text style={[
+                styles.roleText,
+                formData.userrole === 'collector' && styles.roleTextActive
+              ]}>Waste Collector</Text>
+            </TouchableOpacity>
+          </View>
+          {errors.userrole && <Text style={styles.errorText}>{errors.userrole}</Text>}
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.button, isLoading && styles.buttonDisabled]} 
+          onPress={OnCreateAccount}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.buttonText}>Create Account</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.signInLink} 
+          onPress={() => router.push("/(auth)/signIn")}
+        >
+          <Text style={styles.signInText}>
+            Already have an account? <Text style={styles.signInHighlight}>Sign In</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
-
-      <View style={{ marginTop: 25 }}>
-        <Text>Email</Text>
-        <TextInput
-          placeholder="Enter your Email"
-          style={styles.TextInput}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        {errors.email && <Text style={styles.error}>{errors.email}</Text>}
-      </View>
-
-      <View style={{ marginTop: 25 }}>
-        <Text>Password</Text>
-        <TextInput
-          placeholder="Enter your Password"
-          secureTextEntry
-          style={styles.TextInput}
-          value={password}
-          onChangeText={setPassword}
-        />
-        {errors.password && <Text style={styles.error}>{errors.password}</Text>}
-      </View>
-
-      <TouchableOpacity style={styles.button} onPress={OnCreateAccount}>
-        <Text style={{ fontSize: 17, color: "white", textAlign: "center" }}>Create Account</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.buttonCreate} onPress={() => router.push("/(auth)/signIn")}>
-        <Text style={{ fontSize: 17, color: Colors.PRIMARY, textAlign: "center" }}>
-          Already have an account? Sign In
-        </Text>
-      </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  textHeader: { fontSize: 30, fontWeight: "bold", marginTop: 15 },
-  TextInput: { padding: 10, borderWidth: 1, fontSize: 17, borderRadius: 10, marginTop: 5, backgroundColor: "white" },
-  button: { padding: 20, backgroundColor: Colors.PRIMARY, borderRadius: 10, marginTop: 35 },
-  buttonCreate: { padding: 20, backgroundColor: "white", borderRadius: 10, marginTop: 20, borderWidth: 1, borderColor: Colors.PRIMARY },
-  error: { color: "red", fontSize: 14, marginTop: 4 }
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  content: {
+    padding: 25,
+    paddingTop: 40,
+  },
+  textHeader: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: Colors.PRIMARY,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
+  textInput: {
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    fontSize: 16,
+    backgroundColor: 'white',
+  },
+  inputError: {
+    borderColor: '#F44336',
+  },
+  errorText: {
+    color: '#F44336',
+    fontSize: 14,
+    marginTop: 5,
+  },
+  roleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  roleButton: {
+    flex: 1,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: 'white',
+  },
+  roleButtonActive: {
+    borderColor: Colors.PRIMARY,
+    backgroundColor: Colors.PRIMARY + '20', // 20% opacity
+  },
+  roleText: {
+    color: '#666',
+    fontWeight: '500',
+  },
+  roleTextActive: {
+    color: Colors.PRIMARY,
+    fontWeight: '600',
+  },
+  button: {
+    padding: 18,
+    backgroundColor: Colors.PRIMARY,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  buttonText: {
+    fontSize: 18,
+    color: 'white',
+    fontWeight: '600',
+  },
+  signInLink: {
+    alignItems: 'center',
+    padding: 15,
+  },
+  signInText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  signInHighlight: {
+    color: Colors.PRIMARY,
+    fontWeight: '600',
+  },
+  responseBanner: {
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  responseText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
 });
