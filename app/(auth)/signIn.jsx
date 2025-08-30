@@ -5,36 +5,30 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  ToastAndroid,
   TouchableOpacity,
   View,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { FontAwesome } from "@expo/vector-icons";
-import { HeaderShownContext } from "@react-navigation/elements";
+import {phone} from 'phone';
 import { useRouter } from "expo-router";
 import Colors from "../../constant/Colors";
-import { setLocalStorage, getLocalStorage, removeLocalStorage } from "@/service/Storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SignIn() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [otpStep, setOtpStep] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
+  const [email, setUserEmail] = useState("");
+  const [password, setUserPassword] = useState("");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [forgotPasswordModal, setForgotPasswordModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
-  // Fake user database
-  const mockUsers = [
-    { email: "user@example.com", password: "123456", name: "John Doe" },
-    { email: "nsan@gmail.com", password: "123456", name: "nsan" },
-    { email: "admin@example.com", password: "admin123", name: "Admin User" },
-  ];
-
-  // Save to AsyncStorage
+  // Save user data to AsyncStorage
   const setLocalStorage = async (key, value) => {
     await AsyncStorage.setItem(key, JSON.stringify(value));
   };
@@ -55,126 +49,383 @@ export default function SignIn() {
     return Object.keys(tempErrors).length === 0;
   };
 
-  // Handle sign in
+  // Handle sign in - REAL API INTEGRATION
   const handleSignIn = async () => {
     if (!validateForm()) {
-      ToastAndroid.show("Please fix the form errors", ToastAndroid.SHORT);
+      Alert.alert("Error", "Please fix the form errors");
       return;
     }
 
     setLoading(true);
 
-    setTimeout(async () => {
-      const user = mockUsers.find(
-        (u) => u.email === email && u.password === password
-      );
+    try {
+      // REPLACE WITH YOUR ACTUAL API ENDPOINT
+      const API_URL = "http://192.168.137.1:4000/api/user/login";
+      
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password,
+        }),
+      });
 
-      if (user) {
-        await setLocalStorage("userDetail", user);
-        setLoading(false);
-        setOtpStep(true); // move to OTP step
+      const data = await response.json();
+
+      if (response.ok) {
+        // Save user data to storage
+        await setLocalStorage("userDetail", data.user);
+        
+        // DIRECTLY NAVIGATE TO HOME SCREEN
+        router.replace("/(tabs)");
       } else {
-        setLoading(false);
-        Alert.alert("Login Failed", "Invalid email or password");
+        Alert.alert("Login Failed", data.message || "Invalid email or password");
       }
-    }, 1000);
+    } catch (error) {
+      Alert.alert("Error", "Network error. Please try again.");
+      console.error("Login error:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Verify OTP
-  const verifyOtp = () => {
-    if (!otpCode) {
-      Alert.alert("Error", "Please enter the OTP");
+  // Handle forgot password
+  const handleForgotPassword = async () => {
+    if (!resetEmail) {
+      Alert.alert("Error", "Please enter your email address");
       return;
     }
-    if (otpCode === "123456") {
-      router.replace("(tabs)"); // Navigate to your home screen
-    } else {
-      Alert.alert("Error", "Invalid OTP");
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail.trim())) {
+      Alert.alert("Error", "Please enter a valid email address");
+      return;
+    }
+
+    try {
+      // REPLACE WITH YOUR ACTUAL FORGOT PASSWORD API ENDPOINT
+      const API_URL = "http://your-backend-url.com/api/forgot-password";
+      
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: resetEmail.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert(
+          "Reset Email Sent",
+          "If an account exists with this email, you will receive password reset instructions shortly.",
+          [{ text: "OK", onPress: () => setForgotPasswordModal(false) }]
+        );
+      } else {
+        Alert.alert("Error", data.message || "Failed to send reset email");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Network error. Please try again.");
+      console.error("Forgot password error:", error);
     }
   };
 
   return (
-    <View style={{ padding: 25, flex: 1, backgroundColor: "white" }}>
-      {!otpStep ? (
-        <>
-          <Text style={styles.textHeader}>Let's Sign You In</Text>
-          <Text style={styles.SubText}>Welcome Back</Text>
-          <Text style={styles.SubText}>You've been missed</Text>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {forgotPasswordModal ? (
+          <View style={styles.modalContainer}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => setForgotPasswordModal(false)}
+            >
+              <Ionicons name="arrow-back" size={24} color={Colors.PRIMARY} />
+            </TouchableOpacity>
 
-          <View style={{ marginTop: 25 }}>
-            <Text>Email</Text>
-            <TextInput
-              placeholder="Enter your Email"
-              style={styles.TextInput}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            {errors.email && <Text style={styles.error}>{errors.email}</Text>}
-          </View>
-
-          <View style={{ marginTop: 25 }}>
-            <Text>Password</Text>
-            <TextInput
-              placeholder="Enter your Password"
-              secureTextEntry
-              style={styles.TextInput}
-              value={password}
-              onChangeText={setPassword}
-            />
-            {errors.password && (
-              <Text style={styles.error}>{errors.password}</Text>
-            )}
-          </View>
-
-          <TouchableOpacity
-            style={[styles.button, loading && { opacity: 0.6 }]}
-            onPress={handleSignIn}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.buttonText}>Login</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.buttonCreate}
-            onPress={() => router.push("/(auth)/SignUp")}
-          >
-            <Text style={{ fontSize: 17, color: Colors.PRIMARY, textAlign: "center" }}>
-              Create Account
+            <Text style={styles.modalTitle}>Reset Password</Text>
+            <Text style={styles.modalSubtitle}>
+              Enter your email address and we'll send you instructions to reset your password.
             </Text>
-          </TouchableOpacity>
-        </>
-      ) : (
-        <>
-          <Text style={styles.textHeader}>Enter OTP</Text>
-          <TextInput
-            placeholder="6-digit code"
-            style={styles.TextInput}
-            keyboardType="number-pad"
-            maxLength={6}
-            value={otpCode}
-            onChangeText={setOtpCode}
-          />
-          <TouchableOpacity style={styles.button} onPress={verifyOtp}>
-            <Text style={styles.buttonText}>Verify OTP</Text>
-          </TouchableOpacity>
-        </>
-      )}
-    </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email Address</Text>
+              <TextInput
+                placeholder="Enter your email"
+                style={styles.textInput}
+                value={resetEmail}
+                onChangeText={setResetEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <TouchableOpacity 
+              style={styles.primaryButton}
+              onPress={handleForgotPassword}
+            >
+              <Text style={styles.primaryButtonText}>Send Reset Instructions</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.content}>
+            <Text style={styles.textHeader}>Welcome Back</Text>
+            <Text style={styles.subText}>Sign in to your waste management account</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email Address</Text>
+              <TextInput
+                placeholder="Enter your email"
+                placeholderTextColor="gray"
+                style={[styles.textInput, errors.email && styles.inputError]}
+                value={email}
+                onChangeText={(text) => {
+                  setUserEmail(text);
+                  if (errors.email) setErrors({...errors, email: ""});
+                }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Password</Text>
+              <View style={[styles.passwordInput, errors.password && styles.inputError]}>
+                <TextInput
+                  placeholder="Enter your password"
+                  placeholderTextColor="gray"
+                  secureTextEntry={!showPassword}
+                  style={styles.passwordTextInput}
+                  value={password}
+                  onChangeText={(text) => {
+                    setUserPassword(text);
+                    if (errors.password) setErrors({...errors, password: ""});
+                  }}
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <Ionicons 
+                    name={showPassword ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="#666" 
+                  />
+                </TouchableOpacity>
+              </View>
+              {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+            </View>
+
+            <TouchableOpacity 
+              style={styles.forgotPassword}
+              onPress={() => setForgotPasswordModal(true)}
+            >
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.primaryButton, loading && styles.buttonDisabled]}
+              onPress={handleSignIn}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Sign In</Text>
+              )}
+            </TouchableOpacity>
+            
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => router.push("/(auth)/SignUp")}
+            >
+              <Text style={styles.secondaryButtonText}>Create New Account</Text>
+            </TouchableOpacity>
+
+            {/* Demo Credentials Hint to show user how to login in the Zerodech app.
+            <View style={styles.demoHint}>
+              <Text style={styles.demoHintTitle}>Demo Credentials:</Text>
+              <Text style={styles.demoHintText}>• user@example.com / 123456</Text>
+              <Text style={styles.demoHintText}>• collector@example.com / 123456</Text>
+              <Text style={styles.demoHintText}>• admin@example.com / admin123</Text>
+            </View> */}
+          </View>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  textHeader: { fontSize: 30, fontWeight: "bold", marginTop: 15 },
-  SubText: { fontSize: 20, fontWeight: "500", marginTop: 5, color: Colors.Gray },
-  TextInput: { padding: 12, borderWidth: 1, fontSize: 16, borderRadius: 10, marginTop: 5, backgroundColor: "white", borderColor: "#ddd" },
-  button: { padding: 16, backgroundColor: Colors.PRIMARY, borderRadius: 10, marginTop: 35, alignItems: "center" },
-  buttonCreate: { padding: 16, backgroundColor: "white", borderRadius: 10, marginTop: 20, borderWidth: 1, borderColor: Colors.PRIMARY },
-  buttonText: { fontSize: 17, color: "white", textAlign: "center" },
-  error: { color: "red", fontSize: 14, marginTop: 4 },
+  container: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  content: {
+    padding: 25,
+  },
+  modalContainer: {
+    padding: 25,
+    backgroundColor: "white",
+    flex: 1,
+    justifyContent: "center",
+  },
+  backButton: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    padding: 10,
+    zIndex: 1,
+  },
+  textHeader: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: Colors.PRIMARY,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  modalTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: Colors.PRIMARY,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  subText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 40,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 30,
+    lineHeight: 20,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+    color: "#333",
+  },
+  textInput: {
+    padding: 15,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    fontSize: 16,
+    backgroundColor: "white",
+  },
+  passwordInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    backgroundColor: "white",
+  },
+  passwordTextInput: {
+    flex: 1,
+    fontSize: 16,
+  },
+  inputError: {
+    borderColor: "#F44336",
+  },
+  errorText: {
+    color: "#F44336",
+    fontSize: 14,
+    marginTop: 5,
+  },
+  forgotPassword: {
+    alignSelf: "flex-end",
+    marginBottom: 30,
+  },
+  forgotPasswordText: {
+    color: Colors.PRIMARY,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  primaryButton: {
+    padding: 18,
+    backgroundColor: Colors.PRIMARY,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  primaryButtonText: {
+    fontSize: 18,
+    color: "white",
+    fontWeight: "600",
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#ddd",
+  },
+  dividerText: {
+    marginHorizontal: 15,
+    color: "#666",
+    fontWeight: "500",
+  },
+  secondaryButton: {
+    padding: 18,
+    borderWidth: 1,
+    borderColor: Colors.PRIMARY,
+    borderRadius: 12,
+    alignItems: "center",
+    backgroundColor: "white",
+  },
+  secondaryButtonText: {
+    fontSize: 18,
+    color: Colors.PRIMARY,
+    fontWeight: "600",
+  },
+  demoHint: {
+    marginTop: 30,
+    padding: 15,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.PRIMARY,
+  },
+  demoHintTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 5,
+  },
+  demoHintText: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 2,
+  },
 });

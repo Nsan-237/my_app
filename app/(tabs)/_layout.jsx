@@ -26,7 +26,7 @@ export default function TabLayout() {
       <Tabs screenOptions={{
         headerShown:false
       }}>
-        <Tabs.Screen name="index" 
+            <Tabs.Screen name="Home" 
         options={{
             tabBarlable:"Home",
             tabBarIcon:({color,size})=>(
