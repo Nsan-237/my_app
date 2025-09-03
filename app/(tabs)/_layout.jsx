@@ -28,7 +28,7 @@ export default function TabLayout() {
       }}>
             <Tabs.Screen name="Home" 
         options={{
-            tabBarlable:"Home",
+            tabBarlable:"index",
             tabBarIcon:({color,size})=>(
                 <FontAwesome name="home" size={size} color={color} />
             )
@@ -37,7 +37,7 @@ export default function TabLayout() {
         options={{
             tabBarlable:"Subscription Plan",
             tabBarIcon:({color,size})=>(
-                <FontAwesome name="plus-square" size={size} color="black" />
+                <FontAwesome name="credit-card" size={size} color={color} />
             )
             }}/>
         <Tabs.Screen name='Profile' 
