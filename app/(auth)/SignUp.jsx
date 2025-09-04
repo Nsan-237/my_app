@@ -1,3 +1,4 @@
+import { API_URL } from "@/constant";
 import axios from "axios";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -21,7 +22,7 @@ export default function SignUp() {
     useremail: "",
     userphone: "",
     userpassword: "",
-    userrole: "client", // default role
+    userrole: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -69,7 +70,7 @@ export default function SignUp() {
     setApiResponse(null);
 
     try {
-      const apiUrl = "http://192.168.137.1:4000/api/user/signup";
+      const apiUrl = `${API_URL}/user/signup`;
       const response = await axios.post(apiUrl, formData);
 
       if (response.status === 201) {

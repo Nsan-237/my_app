@@ -14,7 +14,6 @@ export default function TabLayout() {
        useEffect(()=>{
           // GetUserDetail()
        },[])
-
        const GetUserDetail=async()=>{
         const userInfo = await getLocalStorage ("userDetail")
         if(!userInfo){

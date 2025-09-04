@@ -13,5 +13,5 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-, "app/(auth)/SignUp.jsx", "app/(auth)/signIn.jsx", "app/(auth)/otp.jsx", "app/(tabs)/index.jsx", "app/src/screens/subscription/PlansScreen.jsx", "app/(tabs)/index.jsx", "app/(tabs)/_layout.jsx"  ]
+, "app/(auth)/SignUp.jsx", "app/(auth)/signIn.jsx", "app/(auth)/otp.jsx", "app/(tabs)/index.jsx", "app/src/screens/subscription/PlansScreen.jsx", "app/(tabs)/index.jsx", "app/(tabs)/_layout.jsx", "app/(collector)/index.jsx"  ]
 }

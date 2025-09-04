@@ -14,7 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native'; // ✅ added
+import { useFocusEffect } from '@react-navigation/native'; // ✅ 
 import Colors from '../../constant/Colors';
 
 export default function ProfileScreen() {
