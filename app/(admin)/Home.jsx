@@ -525,7 +525,7 @@ const AdminDashboard = () => {
             styles.tabText,
             activeTab === 'subscriptions' && styles.tabTextActive
           ]}>
-            Subscriptions
+            Subscription
           </Text>
         </TouchableOpacity>
 
