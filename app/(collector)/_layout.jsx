@@ -6,7 +6,6 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useId } from 'react';
 import { useState } from 'react';
 import { getLocalStorage } from '@/service/Storage';
-import { blue } from 'react-native-reanimated/lib/typescript/Colors';
 
 export default function TabLayout() {
 

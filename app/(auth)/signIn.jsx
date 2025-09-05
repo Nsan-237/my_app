@@ -20,7 +20,7 @@
 // export default function SignIn() {
 //   const router = useRouter();
 
-//   const [email, setUserEmail] = useState("nsan@gmail.com");
+//   const [email, setUserEmail] = useState("ebe1@gmail.com");
 //   const [password, setUserPassword] = useState("123456");
 //   const [errors, setErrors] = useState({});
 //   const [loading, setLoading] = useState(false);
@@ -83,7 +83,7 @@
 //         }else if(data.user.role === "collector"){
 //             router.push("/(collector)/Home")
 //         }else if(data.user.role === "admin"){
-//             router.push("/(admin)/Home")
+//             router.push("/(admin)")
 //         }
 //       } else {
 //         Alert.alert("Login Failed", data.message || "Invalid email or password");
