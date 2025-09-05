@@ -1,6 +1,6 @@
 // Home page
 import React, { Component, useEffect } from 'react'
-import { Text, View, StyleSheet } from 'react-native'
+import { Text, View } from 'react-native'
 import { Tabs, useRouter } from 'expo-router'
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useId } from 'react';

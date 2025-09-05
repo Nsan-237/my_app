@@ -285,7 +285,7 @@ const CollectorDashboard = () => {
             <Text style={styles.headerTitle}>Collector Dashboard</Text>
             <Text style={styles.headerSubtitle}>Zerodech Field App</Text>
           </View>
-          <TouchableOpacity style={styles.iconButton} onPress={getCurrentLocation} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.iconButton} onPress={getCurrentLocation}  activeOpacity={0.8}>
             <Ionicons name="location" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -464,6 +464,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
+    marginTop: 30, 
   },
   headerSubtitle: {
     fontSize: 14,
@@ -477,6 +478,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 20,
   },
   searchContainer: {
     paddingTop: 16,
