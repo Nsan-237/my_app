@@ -983,6 +983,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: '#fff',
+    
   },
   requestDetails: {
     marginTop: 8,
@@ -1104,9 +1105,11 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxHeight: height * 0.85,
+    height: '55%',
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 16,
+
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1118,6 +1121,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#111827',
+
   },
   modalBody: {
     flex: 1,
