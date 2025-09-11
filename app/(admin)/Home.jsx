@@ -1291,9 +1291,9 @@ import {
   Dimensions,
   StatusBar,
   SafeAreaView,
-  Switch,
-  Picker
+  Switch
 } from 'react-native';
+import {Picker} from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
