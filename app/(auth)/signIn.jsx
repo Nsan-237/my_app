@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { API_URL } from "../../constant";
 import Colors from "../../constant/Colors";
+import { setLocalStorage } from "@/utils";
 
 export default function SignIn() {
   const router = useRouter();
@@ -27,11 +28,6 @@ export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [forgotPasswordModal, setForgotPasswordModal] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
-
-  // Save user data to AsyncStorage
-  const setLocalStorage = async (key, value) => {
-    await AsyncStorage.setItem(key, JSON.stringify(value));
-  };
 
   // Form validation
   const validateForm = () => {
@@ -75,7 +71,8 @@ export default function SignIn() {
       const data = await response.json();
 
       if (response.ok) {
-        // Save user data to storage
+        // Save user data to 
+        await setLocalStorage("authToken", data.token);
         await setLocalStorage("userDetail", data.user);
             console.log("User details saved:", data.user);
         if(data.user.role === "client"){
@@ -89,6 +86,7 @@ export default function SignIn() {
         Alert.alert("Login Failed", data.message || "Invalid email or password");
       }
     } catch (error) {
+        console.log("Error:", error);
       Alert.alert("Error", "Network error. Please try again.");
       console.error("Login error:", error);
     } finally {
