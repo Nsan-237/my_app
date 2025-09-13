@@ -1,5 +1,6 @@
 import { API_URL } from "@/constant";
 import axios from "axios";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -14,12 +15,14 @@ import {
 } from "react-native";
 import Colors from "../../constant/Colors";
 
+
 export default function SignUp() {
   const router = useRouter();
 
   const [formData, setFormData] = useState({
     username: "",
     useremail: "",
+    userlocation: "",
     userphone: "",
     userpassword: "",
     userrole: "",
@@ -52,6 +55,7 @@ export default function SignUp() {
     if (!formData.userphone) tempErrors.userphone = "Phone number is required";
     if (!formData.userpassword)
       tempErrors.userpassword = "Password is required";
+    if (!formData.userlocation) tempErrors.userlocation = "Location is required";
     if (!formData.userrole) tempErrors.userrole = "Please select a role";
 
     setErrors(tempErrors);
@@ -169,9 +173,27 @@ export default function SignUp() {
           )}
         </View>
 
+         {/* Location */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}> Location </Text>
+          <TextInput
+            placeholder="Enter your Location"
+            placeholderTextColor="gray"
+            style={[styles.textInput, errors.userlocation && styles.inputError]}
+            value={formData.userlocation}
+            onChangeText={(text) => handleInputChange("userlocation", text)}
+            keyboardType="email-location"
+            autoCapitalize="none"
+          />
+          {errors.userlocation && (
+            <Text style={styles.errorText}>{errors.userlocation}</Text>
+          )}
+        </View>
+
         {/* Password */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Password </Text>
+          
           <TextInput
             placeholder="Create a password (min. 6 characters)"
             placeholderTextColor="gray"
@@ -180,6 +202,7 @@ export default function SignUp() {
             value={formData.userpassword}
             onChangeText={(text) => handleInputChange("userpassword", text)}
           />
+         
           {errors.userpassword && (
             <Text style={styles.errorText}>{errors.userpassword}</Text>
           )}

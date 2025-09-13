@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,21 +7,99 @@ import {
   TouchableOpacity, 
   Dimensions,
   StatusBar,
-  Animated
+  Animated,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
+import {API_URL} from '../../constant/index';
 const { width, height } = Dimensions.get('window');
+
+
+
+// API Service Functions
+const apiService = {
+  // Fetch user details by ID
+ fetchUser: async (userId) => {
+  try {
+    const response = await fetch(`${API_URL}/user/getuser/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const text = await response.text();
+    console.log('Raw response:', text); // Debugging
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error('Response is not valid JSON: ' + text);
+    }
+
+    if (response.ok && data.success) {
+      return data.data;
+    } else {
+      throw new Error(data.message || 'Failed to fetch user');
+    }
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    throw error;
+  }
+},
+
+
+  // Alternative: Fetch current authenticated user
+  fetchCurrentUser: async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`${API_URL}/user/getuser/:`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        return data.data;
+      } else {
+        throw new Error(data.message || 'Failed to fetch user');
+      }
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      throw error;
+    }
+  }
+};
 
 export default function Home() {
   const router = useRouter();
   const [scrollY] = useState(new Animated.Value(0));
+  
+  // User State Management
+  const [user, setUser] = useState({
+    id: null,
+    name: 'Loading...', // Show loading initially
+    email: '',
+    isLoading: true,
+    error: null
+  });
 
-  // Mock user data - replace with real user state later
-  const user = {
-    name: "John",
+  // Mock data for other features (we'll replace this in next steps)
+  const [mockData, setMockData] = useState({
     currentPlan: "Standard",
     bucketSize: "40L",
     collectionsPerWeek: 3,
@@ -32,6 +110,53 @@ export default function Home() {
       wasteCollected: "480L",
       amountPaid: "8,000 FCFA"
     }
+  });
+
+  // Load user data on component mount
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      setUser(prev => ({ ...prev, isLoading: true, error: null }));
+
+      // Method 1: Get user ID from AsyncStorage (if you store it after login)
+      const userId = await AsyncStorage.getItem('userId');
+      
+      if (userId) {
+        const userData = await apiService.fetchUser(userId);
+        setUser({
+          id: userData._id || userData.id,
+          name: userData.name || 'Unknown User',
+          email: userData.email || '',
+          isLoading: false,
+          error: null
+        });
+      } else {
+        // Method 2: Get current user from token
+        const userData = await apiService.fetchCurrentUser();
+        setUser({
+          id: userData._id || userData.id,
+          name: userData.name || 'Unknown User',
+          email: userData.email || '',
+          isLoading: false,
+          error: null
+        });
+      }
+
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+      setUser(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error.message,
+        name: 'User' // Fallback name
+      }));
+
+      // Optional: Show error alert
+      // Alert.alert('Error', 'Failed to load user data');
+    }
   };
 
   const handleSubscribe = () => {
@@ -40,8 +165,18 @@ export default function Home() {
 
   const handleQuickAction = (action) => {
     console.log(`${action} pressed`);
-    // Navigate to respective screens later
+    // We'll implement these in next steps
   };
+
+  // Show loading screen while fetching user data
+  if (user.isLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#4CAF50" />
+        <Text style={styles.loadingText}>Loading your profile...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -79,7 +214,7 @@ export default function Home() {
           <View style={[styles.floatingCircle, { top: 180, left: 60, width: 25, height: 25 }]} />
         </LinearGradient>
 
-        {/* User Greeting Card */}
+        {/* User Greeting Card - NOW WITH REAL USER NAME */}
         <View style={styles.greetingCard}>
           <View style={styles.greetingContent}>
             <View style={styles.avatarContainer}>
@@ -88,11 +223,24 @@ export default function Home() {
             <View style={styles.greetingText}>
               <Text style={styles.greetingTitle}>Hello, {user.name}!</Text>
               <Text style={styles.greetingSubtitle}>Welcome back to your clean community</Text>
+              {/* Debug info - remove in production */}
+              {user.error && (
+                <Text style={styles.errorText}>⚠️ {user.error}</Text>
+              )}
             </View>
             <View style={styles.statusBadge}>
               <Text style={styles.statusText}>Active</Text>
             </View>
           </View>
+          
+          {/* Refresh Button for Testing */}
+          <TouchableOpacity 
+            style={styles.refreshButton} 
+            onPress={loadUserData}
+          >
+            <MaterialCommunityIcons name="refresh" size={20} color="#4CAF50" />
+            <Text style={styles.refreshText}>Refresh</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Quick Actions */}
@@ -134,28 +282,28 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Current Subscription Status */}
+        {/* Current Subscription Status - Still using mock data */}
         <View style={styles.section}>
           <View style={styles.subscriptionCard}>
             <View style={styles.subscriptionHeader}>
               <Text style={styles.subscriptionTitle}>Your Current Plan</Text>
               <View style={styles.planBadge}>
-                <Text style={styles.planBadgeText}>{user.currentPlan.toUpperCase()}</Text>
+                <Text style={styles.planBadgeText}>{mockData.currentPlan.toUpperCase()}</Text>
               </View>
             </View>
             
             <Text style={styles.planDetails}>
-              {user.bucketSize} bucket • {user.collectionsPerWeek} collections/week
+              {mockData.bucketSize} bucket • {mockData.collectionsPerWeek} collections/week
             </Text>
-            <Text style={styles.nextPickup}>Next pickup: {user.nextPickup}</Text>
+            <Text style={styles.nextPickup}>Next pickup: {mockData.nextPickup}</Text>
             
             {/* Bucket Fill Level */}
             <View style={styles.bucketStatus}>
               <Text style={styles.bucketLabel}>Bucket Status</Text>
               <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${user.bucketFillLevel}%` }]} />
+                <View style={[styles.progressFill, { width: `${mockData.bucketFillLevel}%` }]} />
               </View>
-              <Text style={styles.fillPercentage}>{user.bucketFillLevel}% Full</Text>
+              <Text style={styles.fillPercentage}>{mockData.bucketFillLevel}% Full</Text>
             </View>
           </View>
         </View>
@@ -178,17 +326,29 @@ export default function Home() {
           <Text style={styles.sectionTitle}>This Month</Text>
           <View style={styles.statsRow}>
             <View style={[styles.statCard, styles.pickupStat]}>
-              <Text style={styles.statNumber}>{user.monthlyStats.pickups}</Text>
+              <Text style={styles.statNumber}>{mockData.monthlyStats.pickups}</Text>
               <Text style={styles.statLabel}>Pickups</Text>
             </View>
             <View style={[styles.statCard, styles.wasteStat]}>
-              <Text style={styles.statNumber}>{user.monthlyStats.wasteCollected}</Text>
+              <Text style={styles.statNumber}>{mockData.monthlyStats.wasteCollected}</Text>
               <Text style={styles.statLabel}>Collected</Text>
             </View>
             <View style={[styles.statCard, styles.costStat]}>
-              <Text style={styles.statNumber}>{user.monthlyStats.amountPaid}</Text>
+              <Text style={styles.statNumber}>{mockData.monthlyStats.amountPaid}</Text>
               <Text style={styles.statLabel}>Spent</Text>
             </View>
+          </View>
+        </View>
+
+        {/* Debug Info Section - Remove in production */}
+        <View style={styles.section}>
+          <Text style={styles.debugTitle}>Debug Info (Remove in production)</Text>
+          <View style={styles.debugCard}>
+            <Text style={styles.debugText}>User ID: {user.id || 'Not loaded'}</Text>
+            <Text style={styles.debugText}>User Name: {user.name}</Text>
+            <Text style={styles.debugText}>User Email: {user.email || 'Not loaded'}</Text>
+            <Text style={styles.debugText}>Loading: {user.isLoading ? 'Yes' : 'No'}</Text>
+            <Text style={styles.debugText}>Error: {user.error || 'None'}</Text>
           </View>
         </View>
 
@@ -203,6 +363,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
   },
   heroSection: {
     height: 280,
@@ -294,6 +463,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  errorText: {
+    fontSize: 12,
+    color: '#F44336',
+    marginTop: 4,
+  },
   statusBadge: {
     backgroundColor: '#4CAF50',
     paddingHorizontal: 12,
@@ -304,6 +478,22 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '600',
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 15,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    backgroundColor: '#E8F5E8',
+    borderRadius: 12,
+  },
+  refreshText: {
+    color: '#4CAF50',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 5,
   },
   section: {
     marginHorizontal: 20,
@@ -479,5 +669,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     textAlign: 'center',
+  },
+  // Debug Styles - Remove in production
+  debugTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 10,
+  },
+  debugCard: {
+    backgroundColor: '#f0f0f0',
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#333',
+    marginBottom: 5,
+    fontFamily: 'monospace',
   },
 });
