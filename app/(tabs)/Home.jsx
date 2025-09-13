@@ -15,74 +15,63 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import axiosInstance from '../../apis/api';
 import {API_URL} from '../../constant/index';
 const { width, height } = Dimensions.get('window');
 
 
 
-// API Service Functions
 const apiService = {
   // Fetch user details by ID
- fetchUser: async (userId) => {
-  try {
-    const response = await fetch(`${API_URL}/user/getuser/${userId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const text = await response.text();
-    console.log('Raw response:', text); // Debugging
-
-    let data;
+  fetchUser: async (userId) => {
     try {
-      data = JSON.parse(text);
-    } catch (e) {
-      throw new Error('Response is not valid JSON: ' + text);
-    }
-
-    if (response.ok && data.success) {
-      return data.data;
-    } else {
-      throw new Error(data.message || 'Failed to fetch user');
-    }
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    throw error;
-  }
-},
-
-
-  // Alternative: Fetch current authenticated user
-  fetchCurrentUser: async () => {
-    try {
-      const token = await AsyncStorage.getItem('authToken');
-      
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      const response = await fetch(`${API_URL}/user/getuser/:`, {
-        method: 'GET',
+      const response = await axiosInstance.get(`${API_URL}/api/user/${userId}`, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
       });
 
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        return data.data;
+      // Axios already gives JSON
+      const data = response.data;
+
+      if (response.status === 200 && data) {
+        return data; // your backend sends full user object
       } else {
         throw new Error(data.message || 'Failed to fetch user');
       }
     } catch (error) {
-      console.error('Error fetching current user:', error);
+      console.error('Error fetching user:', error);
       throw error;
     }
+  },
+
+  // Alternative: Fetch current authenticated user
+ fetchCurrentUser: async () => {
+  try {
+    const token = await AsyncStorage.getItem("authToken");
+    const userId = await AsyncStorage.getItem("userId"); // 👈 saved after login
+
+    if (!token || !userId) {
+      throw new Error("No authentication token or userId found");
+    }
+
+    const response = await axiosInstance.get(`${API_URL}/api/user/${userId}`, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+
+    if (response.data && response.data.success) {
+      return response.data.data; // ✅ return user object
+    } else {
+      throw new Error(response.data.message || "Failed to fetch user");
+    }
+  } catch (error) {
+    console.error("Error fetching current user:", error);
+    throw error;
   }
+},
 };
 
 export default function Home() {
