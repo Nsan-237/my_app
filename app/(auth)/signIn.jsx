@@ -1,27 +1,26 @@
+import { setLocalStorage } from "@/utils";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { API_URL } from "../../constant";
 import Colors from "../../constant/Colors";
-import { setLocalStorage } from "@/utils";
 
 export default function SignIn() {
   const router = useRouter();
 
-  const [email, setUserEmail] = useState("ebe1@gmail.com");
+  const [email, setUserEmail] = useState("nsan@gmail.com");
   const [password, setUserPassword] = useState("123456");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -55,8 +54,6 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-
-      
       const response = await fetch(`${API_URL}/user/login`, {
         method: "POST",
         headers: {
@@ -71,22 +68,25 @@ export default function SignIn() {
       const data = await response.json();
 
       if (response.ok) {
-        // Save user data to 
+        // Save user data to
         await setLocalStorage("authToken", data.token);
         await setLocalStorage("userDetail", data.user);
-            console.log("User details saved:", data.user);
-        if(data.user.role === "client"){
-            router.push("/(tabs)/Home")
-        }else if(data.user.role === "collector"){
-            router.push("/(collector)/Home")
-        }else if(data.user.role === "admin"){
-            router.push("/(admin)/Home")
+        console.log("User details saved:", data.user);
+        if (data.user.role === "client") {
+          router.push("/(tabs)/Home");
+        } else if (data.user.role === "collector") {
+          router.push("/(collector)/Home");
+        } else if (data.user.role === "admin") {
+          router.push("/(admin)/Home");
         }
       } else {
-        Alert.alert("Login Failed", data.message || "Invalid email or password");
+        Alert.alert(
+          "Login Failed",
+          data.message || "Invalid email or password"
+        );
       }
     } catch (error) {
-        console.log("Error:", error);
+      console.log("Error:", error);
       Alert.alert("Error", "Network error. Please try again.");
       console.error("Login error:", error);
     } finally {
@@ -109,7 +109,6 @@ export default function SignIn() {
     try {
       // REPLACE WITH YOUR ACTUAL FORGOT PASSWORD API ENDPOINT
 
-      
       const response = await fetch(`${API_URL}/user/forget-password`, {
         method: "POST",
         headers: {
@@ -138,23 +137,24 @@ export default function SignIn() {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {forgotPasswordModal ? (
           <View style={styles.modalContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.backButton}
               onPress={() => setForgotPasswordModal(false)}
             >
               <Ionicons name="arrow-back" size={24} color={Colors.PRIMARY} />
             </TouchableOpacity>
-            
+
             <Text style={styles.modalTitle}>Reset Password</Text>
             <Text style={styles.modalSubtitle}>
-              Enter your email address and we'll send you instructions to reset your password.
+              Enter your email address and we'll send you instructions to reset
+              your password.
             </Text>
 
             <View style={styles.inputGroup}>
@@ -169,17 +169,21 @@ export default function SignIn() {
               />
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.primaryButton}
               onPress={handleForgotPassword}
             >
-              <Text style={styles.primaryButtonText}>Send Reset Instructions</Text>
+              <Text style={styles.primaryButtonText}>
+                Send Reset Instructions
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.content}>
             <Text style={styles.textHeader}>Welcome Back</Text>
-            <Text style={styles.subText}>Sign in to your waste management account</Text>
+            <Text style={styles.subText}>
+              Sign in to your waste management account
+            </Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
@@ -190,17 +194,24 @@ export default function SignIn() {
                 value={email}
                 onChangeText={(text) => {
                   setUserEmail(text);
-                  if (errors.email) setErrors({...errors, email: ""});
+                  if (errors.email) setErrors({ ...errors, email: "" });
                 }}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
-              {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+              {errors.email && (
+                <Text style={styles.errorText}>{errors.email}</Text>
+              )}
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Password</Text>
-              <View style={[styles.passwordInput, errors.password && styles.inputError]}>
+              <View
+                style={[
+                  styles.passwordInput,
+                  errors.password && styles.inputError,
+                ]}
+              >
                 <TextInput
                   placeholder="Enter your password"
                   placeholderTextColor="gray"
@@ -209,21 +220,25 @@ export default function SignIn() {
                   value={password}
                   onChangeText={(text) => {
                     setUserPassword(text);
-                    if (errors.password) setErrors({...errors, password: ""});
+                    if (errors.password) setErrors({ ...errors, password: "" });
                   }}
                 />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Ionicons 
-                    name={showPassword ? "eye-off" : "eye"} 
-                    size={20} 
-                    color="#666" 
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={20}
+                    color="#666"
                   />
                 </TouchableOpacity>
               </View>
-              {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+              {errors.password && (
+                <Text style={styles.errorText}>{errors.password}</Text>
+              )}
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.forgotPassword}
               onPress={() => setForgotPasswordModal(true)}
             >
@@ -241,8 +256,7 @@ export default function SignIn() {
                 <Text style={styles.primaryButtonText}>Sign In</Text>
               )}
             </TouchableOpacity>
-            
-            
+
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>OR</Text>

@@ -84,7 +84,7 @@ const AdminDashboard = () => {
   // Data Loading Functions
   const loadPlans = async () => {
     try {
-      const response = await axiosInstance.get('/subscription/getSubscription');
+      const response = await axiosInstance.get('/subscription/getSubscriptions');
       console.log('Plans response:', response);
       console.log('Plans data:', response.data);
       if (response.status === 200) {
