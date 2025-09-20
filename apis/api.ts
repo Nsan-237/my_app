@@ -1,11 +1,28 @@
-import { API_URL } from "@/constant";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_URL } from "@/constant";
 
 const axiosInstance = axios.create({
-    baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json' // Assuming getAuthToken is an async function
-    },
+  baseURL: API_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
+
+// Attach token to every request safely
+axiosInstance.interceptors.request.use(
+  (config) => {
+    // WARNING: This will not work if token is not already in memory!
+    AsyncStorage.getItem("userToken").then(token => {
+      if (token && config && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      } else if (token && config) {
+        config.headers = { Authorization: `Bearer ${token}` };
+      }
+    });
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 export default axiosInstance;

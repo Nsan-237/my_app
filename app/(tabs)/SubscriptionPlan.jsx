@@ -16,6 +16,7 @@ import { MaterialCommunityIcons, FontAwesome5, Ionicons } from "@expo/vector-ico
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axiosInstance from "../../apis/api"; // path to your axios instance
 import { API_URL } from "../../constant/index";
 
 const { width,height } = Dimensions.get("window");
@@ -78,45 +79,45 @@ export default function SubscriptionPlan() {
     }, [])
   );
 
-  const handleSubscribe = async () => {
-    const plan = plans.find(p => p._id === selectedPlan);
-    if (!plan) return Alert.alert("Error", "Please select a plan first.");
 
-    Alert.alert(
-      "Confirm Subscription",
-      `Subscribe to ${plan.plan} for ${plan.price.toLocaleString()} FCFA/month?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Continue",
-          onPress: async () => {
-            try {
-              const token = await AsyncStorage.getItem("userToken");
-              if (!token) {
-                Alert.alert("Not Authenticated", "Please log in to subscribe.");
-                router.replace("(auth)");
-                return;
-              }
-              const res = await fetch(`${API_URL}/subscription/subscribeToPlan`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ planId: plan._id }),
-              });
-              const result = await res.json();
-              if (result.success) {
-                Alert.alert("Subscribed Successfully 🎉", `You are now on the ${plan.plan}!`, [
-                  { text: "OK", onPress: () => router.replace("./Home") },
-                ]);
-              } else Alert.alert("Error", result.message || "Subscription failed");
-            } catch (err) {
-              console.error(err);
-              Alert.alert("Error", "Something went wrong while subscribing.");
+const handleSubscribe = () => {
+  const plan = plans.find(p => p._id === selectedPlan);
+  if (!plan) return Alert.alert("Error", "Please select a plan first.");
+console.log(API_URL); // Should print your backend URL
+console.log(`${API_URL}/subscription/subscribeToPlan`);
+  Alert.alert(
+    "Confirm Subscription",
+    `Subscribe to ${plan.plan} for ${plan.price.toLocaleString()} FCFA/month?`,
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Continue",
+        onPress: async () => {
+          try {
+            const { data } = await axiosInstance.post("/subscription/subscribeToPlan", {
+              planId: plan._id,
+            });
+
+            if (data.success) {
+              Alert.alert(
+                "Subscribed Successfully 🎉",
+                `You are now on the ${plan.plan}!`,
+                [{ text: "OK", onPress: () => router.replace("./Home") }]
+              );
+            } else {
+              Alert.alert("Error", data.message || "Subscription failed");
             }
-          },
-        },
-      ]
-    );
-  };
+          } catch (err) {
+            console.error(err);
+            Alert.alert("Error", "Something went wrong while subscribing.");
+          }
+        }
+      }
+    ]
+  );
+};
+
+
 
   const handleContactCustom = () => {
     Alert.alert(
