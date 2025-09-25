@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { API_URL } from "../../constant";
 import Colors from "../../constant/Colors";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SignIn() {
   const router = useRouter();
@@ -24,10 +25,11 @@ export default function SignIn() {
   const [email, setUserEmail] = useState("lulu@gmail.com");
   const [password, setUserPassword] = useState("123456");
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [forgotPasswordModal, setForgotPasswordModal] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+
+  const {loginLoading, login} = useAuth();
 
   // Form validation
   const validateForm = () => {
@@ -51,49 +53,7 @@ export default function SignIn() {
       Alert.alert("Error", "Please fix the form errors");
       return;
     }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch(`${API_URL}/user/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          password: password,
-        }),
-      });
-
-      const data = await response.json();
-      console.log("Login response data:", data);
-      if (response.ok) {
-        // Save JWT token for authenticated requests
-        await AsyncStorage.setItem("userToken", data.token);
-        // await setLocalStorage("userDetail", data.user);
-        await AsyncStorage.setItem("userDetail", JSON.stringify(data.user));
-        console.log("User details saved:", data.user);
-        if (data.user.role === "client") {
-          router.push("/(tabs)/Home");
-        } else if (data.user.role === "collector") {
-          router.push("/(collector)/Home");
-        } else if (data.user.role === "admin") {
-          router.push("/(admin)/Home");
-        }
-      } else {
-        Alert.alert(
-          "Login Failed",
-          data.message || "Invalid email or password"
-        );
-      }
-    } catch (error) {
-      console.log("Error:", error);
-      Alert.alert("Error", "Network error. Please try again.");
-      console.error("Login error:", error);
-    } finally {
-      setLoading(false);
-    }
+    login({email: email.trim(), password});
   };
 
   // Handle forgot password
@@ -248,11 +208,11 @@ export default function SignIn() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.primaryButton, loading && styles.buttonDisabled]}
+              style={[styles.primaryButton, loginLoading && styles.buttonDisabled]}
               onPress={handleSignIn}
-              disabled={loading}
+              disabled={loginLoading}
             >
-              {loading ? (
+              {loginLoading ? (
                 <ActivityIndicator color="white" />
               ) : (
                 <Text style={styles.primaryButtonText}>Sign In</Text>
