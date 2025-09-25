@@ -108,7 +108,7 @@ export default function SubscriptionPlan() {
     }, [])
   );
 
-  const token = getAuthToken();
+  const [token, setToken] = useState("");
   console.log("Auth Token:", token);
   useEffect(() => {
     const loadUser = async () => {
@@ -122,6 +122,13 @@ export default function SubscriptionPlan() {
     };
     loadUser();
   }, []);
+  useEffect(() => {
+    const fetchToken = async () => {
+      const authToken = await getAuthToken();
+      setToken(authToken || "");
+    };
+    fetchToken();
+  },[]);
 
   const handleSubscribe = async (req, res) => {
     const plan = plans.find((p) => p._id === selectedPlan);
@@ -147,13 +154,18 @@ export default function SubscriptionPlan() {
                   subscription_id: plan._id,
                   user_id: userData._id,
                   user_name: userData.name
+                }, {
+                  headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                  }
                 }
               );
 
               if (data.success) {
                 Alert.alert(
                   "Subscribed Successfully 🎉",
-                  `You are now on the ${plan.plan}!`,
+                  `You are now on the ${plan.name}!`,
                   [{ text: "OK", onPress: () => router.replace("./Home") }]
                 );
               } else {
