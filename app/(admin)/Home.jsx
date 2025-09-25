@@ -828,7 +828,7 @@ const updatePlan = async () => {
       <StatusBar barStyle="light-content" backgroundColor="#3B82F6" />
       
       {/* Header */}
-      <LinearGradient colors={['#3bf664ff', '#27c512ff']} style={styles.header}>
+      <LinearGradient colors={['#2E7D32', '#4CAF50']} style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Zerodech Admin</Text>
           <Text style={styles.headerSubtitle}>Administrator Dashboard</Text>
