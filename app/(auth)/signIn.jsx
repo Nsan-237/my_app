@@ -21,7 +21,7 @@ import Colors from "../../constant/Colors";
 export default function SignIn() {
   const router = useRouter();
 
-  const [email, setUserEmail] = useState("nsan@gmail.com");
+  const [email, setUserEmail] = useState("lulu@gmail.com");
   const [password, setUserPassword] = useState("123456");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
