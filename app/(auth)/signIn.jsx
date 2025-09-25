@@ -1,5 +1,6 @@
 import { setLocalStorage } from "@/utils";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -66,11 +67,12 @@ export default function SignIn() {
       });
 
       const data = await response.json();
-
+      console.log("Login response data:", data);
       if (response.ok) {
-        // Save user data to
-        await setLocalStorage("authToken", data.token);
-        await setLocalStorage("userDetail", data.user);
+        // Save JWT token for authenticated requests
+        await AsyncStorage.setItem("userToken", data.token);
+        // await setLocalStorage("userDetail", data.user);
+        await AsyncStorage.setItem("userDetail", JSON.stringify(data.user));
         console.log("User details saved:", data.user);
         if (data.user.role === "client") {
           router.push("/(tabs)/Home");

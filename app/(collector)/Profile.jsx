@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef,useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,25 +9,36 @@ import {
   Alert,
   Image,
   StatusBar,
-  Animated
+  Animated,
+  
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native'; // ✅ 
 import Colors from '../../constant/Colors';
+import { getAuthToken, getLocalStorage } from '../../utils';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [userData, setUserData] = useState({
-    name: 'John Doe',
-    phone: '+237 6XX XXX XXX',
-    email: 'john.doe@gmail.com',
-    address: 'Bastos, Yaoundé',
-    currentPlan: 'Standard Plan',
-    profilePicture: null
+  const token = getAuthToken();
+  const [userData, setUserData] = useState({ isLoading: true
+    // name: 'John Doe',
+    // phone: '+237 6XX XXX XXX',
+    // email: 'john.doe@gmail.com',
+    // address: 'Bastos, Yaoundé',
+    // currentPlan: 'Standard Plan',
+    // profilePicture: null
   });
 
+   useEffect(() => {
+      const loadUser = async () => {
+        const userData = await getLocalStorage();
+        console.log("Loaded user data:", userData);
+        setUserData(userData ? { ...userData, isLoading: false } : { isLoading: false, error: "No user found" });
+      };
+      loadUser();
+    }, []);
   // Settings states
   const [smsNotifications, setSmsNotifications] = useState(true);
   const [appNotifications, setAppNotifications] = useState(true);
@@ -174,7 +185,7 @@ export default function ProfileScreen() {
             <ProfileItem
               icon="map-marker"
               title="Address"
-              subtitle={userData.address}
+              subtitle={userData.location}
               onPress={handleEditProfile}
             />
           </ProfileSection>

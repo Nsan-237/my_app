@@ -49,7 +49,10 @@ const AdminDashboard = () => {
   const [planForm, setPlanForm] = useState({
     name: '',
     price: '',
-    duration: 'monthly',
+    originalprice: '',
+    popular: 'false',
+    bucketsize: '',
+    duration: '',
     features: [''],
     isActive: true
   });
@@ -216,7 +219,10 @@ const openPlanModal = (plan = null) => {
       price: plan.price.toString(),
       duration: plan.duration,
       features: plan.features || [''],
-      isActive: plan.isActive
+      isActive: plan.isActive,
+      originalprice: plan.originalPrice,
+      bucketsize: plan.bucketSize,
+      popular: plan.popular
     });
   } else {
     setCurrentPlan(null);
@@ -597,7 +603,7 @@ const updatePlan = async () => {
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Plan Name *</Text>
+              <Text style={styles.inputLabel}>Plan Name </Text>
               <TextInput
                 style={styles.textInput}
                 value={planForm.name}
@@ -607,14 +613,39 @@ const updatePlan = async () => {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Price (FCFA) *</Text>
+              <Text style={styles.inputLabel}>Price (FCFA)</Text>
               <TextInput
                 style={styles.textInput}
                 value={planForm.price}
                 onChangeText={(text) => setPlanForm(prev => ({ ...prev, price: text }))}
-                placeholder="12000"
+                placeholder="12,000"
                 keyboardType="numeric"
               />
+            </View>
+
+              <Text style={styles.inputLabel}>Originalprice (FCFA)</Text>
+            <View style={styles.inputGroup}>
+              <TextInput
+                style={styles.textInput}
+                value={planForm.originalprice}
+                onChangeText={(text) => setPlanForm(prev => ({ ...prev, originalprice: text }))}
+                placeholder="10,000"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Popular plan</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={planForm.popular}
+                  onValueChange={(value) => setPlanForm(prev => ({ ...prev, popular: value }))}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="True" value="true" />
+                  <Picker.Item label="False" value="false" />
+                </Picker>
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
@@ -797,7 +828,7 @@ const updatePlan = async () => {
       <StatusBar barStyle="light-content" backgroundColor="#3B82F6" />
       
       {/* Header */}
-      <LinearGradient colors={['#3B82F6', '#1E40AF']} style={styles.header}>
+      <LinearGradient colors={['#3bf664ff', '#27c512ff']} style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Zerodech Admin</Text>
           <Text style={styles.headerSubtitle}>Administrator Dashboard</Text>

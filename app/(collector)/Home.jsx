@@ -11,73 +11,117 @@ import {
   Modal,
   Dimensions,
   StatusBar,
-  SafeAreaView
+  SafeAreaView,
+  RefreshControl,
+  Linking,
+  ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '../../constant/index';
 
 const { width, height } = Dimensions.get('window');
 
-// Mock data for assigned clients (kept realistic for Cameroon)
-const mockClients = [
-  {
-    id: 'CL001',
-    name: 'Marie Ngono',
-    address: 'Mvog-Mbi, Yaoundé',
-    phone: '+237 679 123 456',
-    plan: 'Premium',
-    planPrice: '12,000 FCFA',
-    collectionDay: 'Monday',
-    status: 'pending',
-    coordinates: { lat: 3.8480, lng: 11.5021 },
-    notes: '',
-    lastCollection: '2025-08-28'
+
+
+// API Service Functions
+const apiService = {
+  // Get assigned clients for collector
+  getAssignedClients: async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const collectorId = await AsyncStorage.getItem('userId');
+      console.log("Fetching assigned clients with token:", token, "collectorId:", collectorId);
+      const response = await fetch(`${API_URL}/collector/assigned-clients/${collectorId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch assigned clients');
+      }
+      
+      const data = await response.json();
+      return data.clients || [];
+    } catch (error) {
+      console.error('Error fetching assigned clients:', error);
+      return null; // Return null to use fallback data
+    }
   },
-  {
-    id: 'CL002',
-    name: 'Paul Biya Jr',
-    address: 'Bastos, Yaoundé',
-    phone: '+237 698 987 654',
-    plan: 'Standard',
-    planPrice: '7,000 FCFA',
-    collectionDay: 'Monday',
-    status: 'completed',
-    coordinates: { lat: 3.8667, lng: 11.5167 },
-    notes: 'Regular pickup, bin full',
-    lastCollection: '2025-09-02'
-  },
-  {
-    id: 'CL003',
-    name: 'Agnes Mballa',
-    address: 'Emombo, Yaoundé',
-    phone: '+237 677 555 123',
-    plan: 'Basic',
-    planPrice: '4,000 FCFA',
-    collectionDay: 'Tuesday',
-    status: 'missed',
-    coordinates: { lat: 3.8278, lng: 11.5189 },
-    notes: 'Client away, gate locked',
-    lastCollection: '2025-08-26'
-  },
-  {
-    id: 'CL004',
-    name: 'Jean Claude Mbida',
-    address: 'Nkoldongo, Yaoundé',
-    phone: '+237 655 789 321',
-    plan: 'Premium',
-    planPrice: '12,000 FCFA',
-    collectionDay: 'Wednesday',
-    status: 'pending',
-    coordinates: { lat: 3.8350, lng: 11.5028 },
-    notes: '',
-    lastCollection: '2025-08-30'
+
+  // Submit collection feedback with photo
+submitCollectionFeedback: async (clientId, feedbackData) => {
+  try {
+    const collectorId = await AsyncStorage.getItem('userId');
+    const formData = new FormData();
+    formData.append('collector_id', collectorId);
+    formData.append('client_id', clientId);
+    formData.append('status', feedbackData.status);
+    formData.append('content', feedbackData.notes);
+    formData.append('collection_date', new Date().toISOString());
+    formData.append('location', JSON.stringify(feedbackData.location));
+    if (feedbackData.photo) {
+      formData.append('photo', {
+        uri: feedbackData.photo,
+        type: 'image/jpeg',
+        name: `collection_${clientId}_${Date.now()}.jpg`
+      });
+    }
+    const token = await AsyncStorage.getItem("userToken");
+    // Assign fetch result to response
+    const response = await fetch(`${API_URL}/feedback/create`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        // Do NOT set Content-Type for FormData, let fetch set it
+      },
+      body: formData,
+    });
+    if (!response.ok) {
+      throw new Error('Failed to submit feedback');
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    return { success: false, message: 'Feedback submission failed' };
   }
-];
+},
+
+  updateCollectorLocation: async (location) => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    const collectorId = await AsyncStorage.getItem('userId');
+    
+    await fetch(`${API_URL}/collector/location`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        collector_id: collectorId,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        timestamp: new Date().toISOString()
+      }),
+    });
+  } catch (error) {
+    console.error('Error updating location:', error);
+  }
+}
+};
 
 const CollectorDashboard = () => {
-  const [clients, setClients] = useState(mockClients);
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClient, setSelectedClient] = useState(null);
@@ -86,24 +130,136 @@ const CollectorDashboard = () => {
   const [collectionStatus, setCollectionStatus] = useState('completed');
   const [collectionPhoto, setCollectionPhoto] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+
+  // Fallback data (for demo if API fails)
+  const fallbackClients = [
+    {
+      id: 'CL001',
+      name: 'Marie Ngono',
+      address: 'Mvog-Mbi, Yaoundé',
+      phone: '+237 679 123 456',
+      plan: 'Premium',
+      planPrice: '12,000 FCFA',
+      collectionDay: 'Monday',
+      status: 'pending',
+      coordinates: { lat: 3.8480, lng: 11.5021 },
+      notes: '',
+      lastCollection: '2025-08-28'
+    },
+    {
+      id: 'CL002',
+      name: 'Paul Biya Jr',
+      address: 'Bastos, Yaoundé',
+      phone: '+237 698 987 654',
+      plan: 'Standard',
+      planPrice: '7,000 FCFA',
+      collectionDay: 'Monday',
+      status: 'completed',
+      coordinates: { lat: 3.8667, lng: 11.5167 },
+      notes: 'Regular pickup, bin full',
+      lastCollection: '2025-09-02'
+    },
+    {
+      id: 'CL003',
+      name: 'Agnes Mballa',
+      address: 'Emombo, Yaoundé',
+      phone: '+237 677 555 123',
+      plan: 'Basic',
+      planPrice: '4,000 FCFA',
+      collectionDay: 'Tuesday',
+      status: 'missed',
+      coordinates: { lat: 3.8278, lng: 11.5189 },
+      notes: 'Client away, gate locked',
+      lastCollection: '2025-08-26'
+    },
+    {
+      id: 'CL004',
+      name: 'Jean Claude Mbida',
+      address: 'Nkoldongo, Yaoundé',
+      phone: '+237 655 789 321',
+      plan: 'Premium',
+      planPrice: '12,000 FCFA',
+      collectionDay: 'Wednesday',
+      status: 'pending',
+      coordinates: { lat: 3.8350, lng: 11.5028 },
+      notes: '',
+      lastCollection: '2025-08-30'
+    }
+  ];
 
   useEffect(() => {
-    getCurrentLocation();
+    initializeDashboard();
+    setupLocationTracking();
   }, []);
 
-  const getCurrentLocation = async () => {
+  const initializeDashboard = async () => {
+    setLoading(true);
+    
+    try {
+      // Load assigned clients from API
+      const apiClients = await apiService.getAssignedClients();
+      
+      if (apiClients) {
+        setClients(apiClients);
+      } else {
+        // Use fallback data for demo
+        setClients(fallbackClients);
+      }
+    } catch (error) {
+      console.error('Error initializing dashboard:', error);
+      setClients(fallbackClients);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setupLocationTracking = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Location permission is required');
+        Alert.alert('Permission denied', 'Location permission is required for navigation');
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({});
+      // Get initial location
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      
       setCurrentLocation(location.coords);
+      
+      // Update location in backend
+      await apiService.updateCollectorLocation(location.coords);
+      
+      // Start location tracking
+      const locationSubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 30000, // Update every 30 seconds
+          distanceInterval: 50, // Update every 50 meters
+        },
+        (location) => {
+          setCurrentLocation(location.coords);
+          apiService.updateCollectorLocation(location.coords);
+        }
+      );
+
+      // Cleanup function
+      return () => {
+        if (locationSubscription) {
+          locationSubscription.remove();
+        }
+      };
     } catch (error) {
-      console.log('Location error:', error);
+      console.error('Location setup error:', error);
     }
+  };
+
+  const refreshClients = async () => {
+    setRefreshing(true);
+    await initializeDashboard();
+    setRefreshing(false);
   };
 
   const filterOptions = ['All', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -147,14 +303,22 @@ const CollectorDashboard = () => {
 
   const openCollectionModal = (client) => {
     setSelectedClient(client);
-    setFeedbackNotes(client.notes);
-    setCollectionStatus(client.status);
+    setFeedbackNotes(client.notes || '');
+    setCollectionStatus(client.status === 'completed' ? 'completed' : 'completed');
     setCollectionPhoto(null);
     setCollectionModal(true);
   };
 
   const takePhoto = async () => {
     try {
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Camera permission is required to take photos');
+        return;
+      }
+
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -162,46 +326,154 @@ const CollectorDashboard = () => {
         quality: 0.8,
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets && result.assets[0]) {
         setCollectionPhoto(result.assets[0].uri);
       }
     } catch (error) {
-      Alert.alert('Error', 'Unable to open camera');
+      console.error('Camera error:', error);
+      Alert.alert('Error', 'Unable to open camera. Please try again.');
     }
   };
 
-  const submitCollectionFeedback = () => {
+  const submitCollectionFeedback = async () => {
     if (!selectedClient) return;
 
-    const updatedClients = clients.map(client => {
-      if (client.id === selectedClient.id) {
-        return {
-          ...client,
-          status: collectionStatus,
-          notes: feedbackNotes,
-          lastCollection: collectionStatus === 'completed' ? new Date().toISOString().split('T')[0] : client.lastCollection
-        };
-      }
-      return client;
-    });
+    setSubmittingFeedback(true);
 
-    setClients(updatedClients);
-    setCollectionModal(false);
-    Alert.alert('Success', 'Collection feedback saved');
+    try {
+      // Prepare feedback data
+      const feedbackData = {
+        status: collectionStatus,
+        notes: feedbackNotes,
+        photo: collectionPhoto,
+        location: currentLocation,
+        timestamp: new Date().toISOString()
+      };
+
+      // Submit to API
+      const result = await apiService.submitCollectionFeedback(selectedClient.id, feedbackData);
+
+      if (result.success) {
+        // Update local state
+        const updatedClients = clients.map(client => {
+          if (client.id === selectedClient.id) {
+            return {
+              ...client,
+              status: collectionStatus,
+              notes: feedbackNotes,
+              lastCollection: collectionStatus === 'completed' ? 
+                new Date().toISOString().split('T')[0] : client.lastCollection
+            };
+          }
+          return client;
+        });
+
+        setClients(updatedClients);
+        setCollectionModal(false);
+        
+        Alert.alert(
+          'Success', 
+          'Collection feedback submitted successfully!',
+          [{ text: 'OK', onPress: () => {} }]
+        );
+      } else {
+        throw new Error('Failed to submit feedback');
+      }
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      Alert.alert(
+        'Error', 
+        'Failed to submit feedback. Please try again.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Retry', onPress: submitCollectionFeedback }
+        ]
+      );
+    } finally {
+      setSubmittingFeedback(false);
+    }
   };
 
   const callClient = (phone) => {
-    Alert.alert('Call client', `Number: ${phone}`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Call', onPress: () => console.log('Call:', phone) }
-    ]);
+    Alert.alert(
+      'Call Client', 
+      `Call ${phone}?`, 
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Call', 
+          onPress: () => {
+            Linking.openURL(`tel:${phone}`).catch(err => {
+              console.error('Error making call:', err);
+              Alert.alert('Error', 'Unable to make phone call');
+            });
+          }
+        }
+      ]
+    );
   };
 
   const navigateToClient = (client) => {
-    Alert.alert('Navigation', `Go to: ${client.address}`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Open Maps', onPress: () => console.log('Navigate to:', client.coordinates) }
-    ]);
+    if (!client.coordinates) {
+      Alert.alert('Navigation Error', 'Client location not available');
+      return;
+    }
+
+    const { lat, lng } = client.coordinates;
+    
+    Alert.alert(
+      'Navigate to Client',
+      `Navigate to ${client.name} at ${client.address}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Google Maps', 
+          onPress: () => openGoogleMaps(lat, lng, client.address)
+        },
+        { 
+          text: 'Apple Maps', 
+          onPress: () => openAppleMaps(lat, lng, client.address)
+        }
+      ]
+    );
+  };
+
+  const openGoogleMaps = (lat, lng, address) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodeURIComponent(address)}`;
+    
+    Linking.openURL(url).catch(err => {
+      console.error('Error opening Google Maps:', err);
+      // Fallback to basic maps URL
+      const fallbackUrl = `https://maps.google.com/?q=${lat},${lng}`;
+      Linking.openURL(fallbackUrl).catch(() => {
+        Alert.alert('Error', 'Unable to open maps application');
+      });
+    });
+  };
+
+  const openAppleMaps = (lat, lng, address) => {
+    const url = `http://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
+    
+    Linking.openURL(url).catch(err => {
+      console.error('Error opening Apple Maps:', err);
+      Alert.alert('Error', 'Apple Maps not available on this device');
+    });
+  };
+
+  const getCurrentLocation = async () => {
+    try {
+      setRefreshing(true);
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      setCurrentLocation(location.coords);
+      await apiService.updateCollectorLocation(location.coords);
+    } catch (error) {
+      console.error('Error getting current location:', error);
+      Alert.alert('Location Error', 'Unable to get current location');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const MetricCard = ({ value, label, icon }) => (
@@ -216,7 +488,6 @@ const CollectorDashboard = () => {
 
   const ClientCard = ({ client }) => (
     <View style={styles.clientCard}>
-      {/* Plan strip */}
       <View style={[styles.planStrip, { backgroundColor: getPlanColor(client.plan) }]} />
 
       <View style={styles.cardHeader}>
@@ -274,23 +545,38 @@ const CollectorDashboard = () => {
     </View>
   );
 
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingText}>Loading your assigned clients...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#10B981" />
       
-      {/* Header */}
       <LinearGradient colors={['#10B981', '#059669']} style={styles.header}>
         <View style={styles.headerContent}>
           <View>
             <Text style={styles.headerTitle}>Collector Dashboard</Text>
             <Text style={styles.headerSubtitle}>Zerodech Field App</Text>
           </View>
-          <TouchableOpacity style={styles.iconButton} onPress={getCurrentLocation}  activeOpacity={0.8}>
-            <Ionicons name="location" size={20} color="#fff" />
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={getCurrentLocation}
+            activeOpacity={0.8}
+          >
+            {refreshing ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="location" size={20} color="#fff" />
+            )}
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
             <Ionicons name="search" size={18} color="#6B7280" />
@@ -305,7 +591,6 @@ const CollectorDashboard = () => {
         </View>
       </LinearGradient>
 
-      {/* Filter Pills */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
         {filterOptions.map((filter) => (
           <TouchableOpacity
@@ -327,7 +612,6 @@ const CollectorDashboard = () => {
         ))}
       </ScrollView>
 
-      {/* Stats Overview */}
       <View style={styles.statsContainer}>
         <MetricCard
           value={filteredClients.filter(c => c.status === 'completed').length}
@@ -346,15 +630,20 @@ const CollectorDashboard = () => {
         />
       </View>
 
-      {/* Client List */}
-      <ScrollView style={styles.clientList} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.clientList} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={refreshClients} />
+        }
+      >
         {filteredClients.map((client) => (
           <ClientCard key={client.id} client={client} />
         ))}
         <View style={styles.bottomPadding} />
       </ScrollView>
 
-      {/* Collection Feedback Modal */}
+      {/* Enhanced Collection Feedback Modal */}
       <Modal visible={collectionModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -366,11 +655,10 @@ const CollectorDashboard = () => {
             </View>
 
             {selectedClient && (
-              <View style={styles.modalBody}>
+              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
                 <Text style={styles.modalClientName}>{selectedClient.name}</Text>
                 <Text style={styles.modalClientAddress}>{selectedClient.address}</Text>
 
-                {/* Status Selection */}
                 <Text style={styles.modalLabel}>Pickup status</Text>
                 <View style={styles.statusButtons}>
                   <TouchableOpacity
@@ -406,11 +694,10 @@ const CollectorDashboard = () => {
                   </TouchableOpacity>
                 </View>
 
-                {/* Notes Input */}
                 <Text style={styles.modalLabel}>Notes (optional)</Text>
                 <TextInput
                   style={styles.notesInput}
-                  placeholder="Add a short note..."
+                  placeholder="Add details about the collection..."
                   value={feedbackNotes}
                   onChangeText={setFeedbackNotes}
                   multiline
@@ -418,7 +705,6 @@ const CollectorDashboard = () => {
                   placeholderTextColor="#9CA3AF"
                 />
 
-                {/* Photo Section */}
                 <View style={styles.photoSection}>
                   <Text style={styles.modalLabel}>Photo proof (optional)</Text>
                   <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
@@ -430,11 +716,18 @@ const CollectorDashboard = () => {
                   )}
                 </View>
 
-                {/* Submit Button */}
-                <TouchableOpacity style={styles.submitButton} onPress={submitCollectionFeedback}>
-                  <Text style={styles.submitButtonText}>Save feedback</Text>
+                <TouchableOpacity 
+                  style={[styles.submitButton, submittingFeedback && styles.submitButtonDisabled]} 
+                  onPress={submitCollectionFeedback}
+                  disabled={submittingFeedback}
+                >
+                  {submittingFeedback ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Submit Feedback</Text>
+                  )}
                 </TouchableOpacity>
-              </View>
+              </ScrollView>
             )}
           </View>
         </View>
@@ -447,6 +740,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
   },
   header: {
     paddingTop: 10,

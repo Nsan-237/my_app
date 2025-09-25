@@ -17,77 +17,20 @@ import { MaterialCommunityIcons, FontAwesome5, Ionicons } from '@expo/vector-ico
 import { useRouter } from 'expo-router';
 import axiosInstance from '../../apis/api';
 import {API_URL} from '../../constant/index';
+import { getAuthToken, getLocalStorage } from '../../utils';
 const { width, height } = Dimensions.get('window');
 
 
-
-const apiService = {
-  // Fetch user details by ID
-  fetchUser: async (userId) => {
-    try {
-      const response = await axiosInstance.get(`${API_URL}/api/user/${userId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      // Axios already gives JSON
-      const data = response.data;
-
-      if (response.status === 200 && data) {
-        return data; // your backend sends full user object
-      } else {
-        throw new Error(data.message || 'Failed to fetch user');
-      }
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      throw error;
-    }
-  },
-
-  // Alternative: Fetch current authenticated user
- fetchCurrentUser: async () => {
-  try {
-    const token = await AsyncStorage.getItem("authToken");
-    const userId = await AsyncStorage.getItem("userId"); // 👈 saved after login
-
-    if (!token || !userId) {
-      throw new Error("No authentication token or userId found");
-    }
-
-    const response = await axiosInstance.get(`${API_URL}/api/user/${userId}`, {
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-    });
-
-    if (response.data && response.data.success) {
-      return response.data.data; // ✅ return user object
-    } else {
-      throw new Error(response.data.message || "Failed to fetch user");
-    }
-  } catch (error) {
-    console.error("Error fetching current user:", error);
-    throw error;
-  }
-},
-};
-
 export default function Home() {
+
+  const token = getAuthToken();
+
   const router = useRouter();
   const [scrollY] = useState(new Animated.Value(0));
   
-  // User State Management
-  const [user, setUser] = useState({
-    id: null,
-    name: 'Loading...', // Show loading initially
-    email: '',
-    isLoading: true,
-    error: null
-  });
+ 
+  const [user, setUser] = useState({ isLoading: true });
 
-  // Mock data for other features (we'll replace this in next steps)
   const [mockData, setMockData] = useState({
     currentPlan: "Standard",
     bucketSize: "40L",
@@ -101,52 +44,15 @@ export default function Home() {
     }
   });
 
-  // Load user data on component mount
-  useEffect(() => {
-    loadUserData();
+    useEffect(() => {
+    const loadUser = async () => {
+      const userData = await getLocalStorage();
+      console.log("Loaded user data:", userData);
+      setUser(userData ? { ...userData, isLoading: false } : { isLoading: false, error: "No user found" });
+    };
+    loadUser();
   }, []);
-
-  const loadUserData = async () => {
-    try {
-      setUser(prev => ({ ...prev, isLoading: true, error: null }));
-
-      // Method 1: Get user ID from AsyncStorage (if you store it after login)
-      const userId = await AsyncStorage.getItem('userId');
-      
-      if (userId) {
-        const userData = await apiService.fetchUser(userId);
-        setUser({
-          id: userData._id || userData.id,
-          name: userData.name || 'Unknown User',
-          email: userData.email || '',
-          isLoading: false,
-          error: null
-        });
-      } else {
-        // Method 2: Get current user from token
-        const userData = await apiService.fetchCurrentUser();
-        setUser({
-          id: userData._id || userData.id,
-          name: userData.name || 'Unknown User',
-          email: userData.email || '',
-          isLoading: false,
-          error: null
-        });
-      }
-
-    } catch (error) {
-      console.error('Failed to load user data:', error);
-      setUser(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error.message,
-        name: 'User' // Fallback name
-      }));
-
-      // Optional: Show error alert
-      // Alert.alert('Error', 'Failed to load user data');
-    }
-  };
+ 
 
   const handleSubscribe = () => {
     router.push('/SubscriptionPlan');
@@ -210,7 +116,8 @@ export default function Home() {
               <Text style={styles.avatarEmoji}>👋</Text>
             </View>
             <View style={styles.greetingText}>
-              <Text style={styles.greetingTitle}>Hello, {user.name}!</Text>
+              {/* <Text style={styles.greetingTitle}>Hello, {user.name}!</Text> */}
+              <Text style={styles.greetingTitle}>Hello, {user.name || 'User'} !</Text>
               <Text style={styles.greetingSubtitle}>Welcome back to your clean community</Text>
               {/* Debug info - remove in production */}
               {user.error && (
@@ -223,13 +130,13 @@ export default function Home() {
           </View>
           
           {/* Refresh Button for Testing */}
-          <TouchableOpacity 
+          {/* <TouchableOpacity 
             style={styles.refreshButton} 
-            onPress={loadUserData}
+             onPress={loadUserData}
           >
             <MaterialCommunityIcons name="refresh" size={20} color="#4CAF50" />
             <Text style={styles.refreshText}>Refresh</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {/* Quick Actions */}
@@ -330,16 +237,16 @@ export default function Home() {
         </View>
 
         {/* Debug Info Section - Remove in production */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <Text style={styles.debugTitle}>Debug Info (Remove in production)</Text>
           <View style={styles.debugCard}>
-            <Text style={styles.debugText}>User ID: {user.id || 'Not loaded'}</Text>
+            <Text style={styles.debugText}>User ID: {user._id || 'Not loaded'}</Text>
             <Text style={styles.debugText}>User Name: {user.name}</Text>
             <Text style={styles.debugText}>User Email: {user.email || 'Not loaded'}</Text>
             <Text style={styles.debugText}>Loading: {user.isLoading ? 'Yes' : 'No'}</Text>
             <Text style={styles.debugText}>Error: {user.error || 'None'}</Text>
           </View>
-        </View>
+        </View> */}
 
         {/* Bottom Spacing */}
         <View style={{ height: 40 }} />
@@ -445,7 +352,7 @@ const styles = StyleSheet.create({
   greetingTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#333',
+    color: 'blue',
     marginBottom: 4,
   },
   greetingSubtitle: {
